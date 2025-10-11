@@ -1,0 +1,14 @@
+.venv
+__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.git
+.gitignore
+*.py[cod]
+tests/
+instructions.txt
+SPE - Mini Project Instructions.pdf
+docker-desktop-x86_64.rpm
+configs/
+scripts/

@@ -1,0 +1,7 @@
+version: "2"
+authtoken: ${NGROK_AUTHTOKEN}
+tunnels:
+  calculator:
+    proto: http
+    addr: 8000
+    inspect: false
