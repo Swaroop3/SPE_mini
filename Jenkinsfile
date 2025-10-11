@@ -84,8 +84,9 @@ pipeline {
 
     stage('Deploy via Ansible') {
       when {
-        expression {
-          fileExists('scripts/deploy_with_ansible.sh')
+        allOf {
+          expression { fileExists('scripts/deploy_with_ansible.sh') }
+          expression { sh(script: 'command -v ansible-playbook >/dev/null 2>&1', returnStatus: true) == 0 }
         }
       }
       steps {
