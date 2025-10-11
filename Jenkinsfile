@@ -92,12 +92,12 @@ pipeline {
       when {
         allOf {
           expression { fileExists('scripts/deploy_with_ansible.sh') }
-          expression { sh(script: 'command -v ansible-playbook >/dev/null 2>&1', returnStatus: true) == 0 }
+          expression { sh(script: '. ${VENV_DIR}/bin/activate && command -v ansible-playbook >/dev/null 2>&1', returnStatus: true) == 0 }
         }
       }
       steps {
         sh 'chmod +x scripts/deploy_with_ansible.sh'
-        sh 'scripts/deploy_with_ansible.sh --extra-vars "calculator_image=${FULL_IMAGE}"'
+        sh '. ${VENV_DIR}/bin/activate && scripts/deploy_with_ansible.sh --extra-vars "calculator_image=${FULL_IMAGE} project_root=${env.WORKSPACE} build_from_source=false"'
       }
     }
   }

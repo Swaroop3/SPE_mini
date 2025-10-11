@@ -2,11 +2,16 @@
 - name: Deploy scientific calculator container
   hosts: calculator_hosts
   vars:
-    calculator_image: "{{ calculator_image | default('spe-calculator:latest') }}"
-    calculator_container_name: "{{ calculator_container_name | default('scientific-calculator') }}"
-    calculator_container_port: "{{ calculator_container_port | default(8000) }}"
-    calculator_host_port: "{{ calculator_host_port | default(8000) }}"
-    project_root: "{{ project_root | default(playbook_dir | dirname | dirname) }}"
+    calculator_image_default: "spe-calculator:latest"
+    calculator_container_name_default: "scientific-calculator"
+    calculator_container_port_default: 8000
+    calculator_host_port_default: 8000
+    project_root_default: "{{ playbook_dir | dirname | dirname }}"
+    calculator_image_resolved: "{{ calculator_image | default(calculator_image_default) }}"
+    calculator_container_name_resolved: "{{ calculator_container_name | default(calculator_container_name_default) }}"
+    calculator_container_port_resolved: "{{ calculator_container_port | default(calculator_container_port_default) }}"
+    calculator_host_port_resolved: "{{ calculator_host_port | default(calculator_host_port_default) }}"
+    project_root_resolved: "{{ project_root | default(project_root_default) }}"
     build_from_source: "{{ build_from_source | default(true) }}"
   pre_tasks:
     - name: Check Docker availability
@@ -16,25 +21,25 @@
   tasks:
     - name: Ensure project root exists
       ansible.builtin.stat:
-        path: "{{ project_root }}"
+        path: "{{ project_root_resolved }}"
       register: project_root_stat
 
     - name: Abort when project root is missing
       ansible.builtin.fail:
-        msg: "Project root {{ project_root }} does not exist. Override project_root if the repository lives elsewhere."
+        msg: "Project root {{ project_root_resolved }} does not exist. Override project_root if the repository lives elsewhere."
       when: not project_root_stat.stat.exists
 
     - name: Check for Dockerfile
       ansible.builtin.stat:
-        path: "{{ project_root }}/Dockerfile"
+        path: "{{ project_root_resolved }}/Dockerfile"
       register: dockerfile_stat
 
     - name: Build image from local Dockerfile
       community.docker.docker_image:
-        name: "{{ calculator_image }}"
+        name: "{{ calculator_image_resolved }}"
         source: build
         build:
-          path: "{{ project_root }}"
+          path: "{{ project_root_resolved }}"
         push: false
       when:
         - dockerfile_stat.stat.exists
@@ -42,16 +47,16 @@
 
     - name: Pull image from registry when Dockerfile missing
       community.docker.docker_image:
-        name: "{{ calculator_image }}"
+        name: "{{ calculator_image_resolved }}"
         source: pull
       when: not dockerfile_stat.stat.exists or not (build_from_source | bool)
 
     - name: Run scientific calculator container
       community.docker.docker_container:
-        name: "{{ calculator_container_name }}"
-        image: "{{ calculator_image }}"
+        name: "{{ calculator_container_name_resolved }}"
+        image: "{{ calculator_image_resolved }}"
         state: started
         recreate: true
         restart_policy: unless-stopped
         published_ports:
-          - "{{ calculator_host_port }}:{{ calculator_container_port }}"
+          - "{{ calculator_host_port_resolved }}:{{ calculator_container_port_resolved }}"
