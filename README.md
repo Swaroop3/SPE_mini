@@ -26,5 +26,3 @@ uvicorn spe_calculator.api:app --reload --port 8000
 docker build -t spe-calculator:latest .
 docker run -p 8000:8000 spe-calculator:latest
 ```
-
-Refer to `AGENTS.md` for contributor guidelines and DevOps workflow expectations.
