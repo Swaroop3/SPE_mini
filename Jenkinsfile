@@ -5,6 +5,7 @@ pipeline {
     VENV_DIR = ".venv"
     DOCKER_IMAGE = "docker.io/swaroop3/spe-calculator"
     IMAGE_TAG = "${env.IMAGE_TAG ?: env.BUILD_NUMBER}"
+    DOCKERHUB_CREDENTIALS = "dockerhub"
   }
 
   options {
@@ -58,6 +59,7 @@ pipeline {
           env.FULL_IMAGE = "${env.DOCKER_IMAGE}:${env.IMAGE_TAG}"
         }
         sh 'docker build -t ${FULL_IMAGE} .'
+        sh 'docker tag ${FULL_IMAGE} ${DOCKER_IMAGE}:latest'
       }
     }
 
@@ -77,6 +79,7 @@ pipeline {
         ]) {
           sh 'echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin'
           sh 'docker push ${FULL_IMAGE}'
+          sh 'docker push ${DOCKER_IMAGE}:latest'
         }
       }
     }
