@@ -77,9 +77,12 @@ pipeline {
             passwordVariable: 'DOCKERHUB_PASS'
           )
         ]) {
-          sh 'echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin'
-          sh 'docker push ${FULL_IMAGE}'
-          sh 'docker push ${DOCKER_IMAGE}:latest'
+          withEnv(["DOCKER_CONFIG=${env.WORKSPACE}/.docker"]) {
+            sh 'mkdir -p "${DOCKER_CONFIG}"'
+            sh 'echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin'
+            sh 'docker push ${FULL_IMAGE}'
+            sh 'docker push ${DOCKER_IMAGE}:latest'
+          }
         }
       }
     }
@@ -101,7 +104,9 @@ pipeline {
   post {
     always {
       script {
-        sh(script: 'docker logout >/dev/null 2>&1', returnStatus: true)
+        withEnv(["DOCKER_CONFIG=${env.WORKSPACE}/.docker"]) {
+          sh(script: 'docker logout >/dev/null 2>&1', returnStatus: true)
+        }
       }
     }
   }
