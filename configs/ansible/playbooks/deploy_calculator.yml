@@ -7,6 +7,7 @@
     calculator_container_port: "{{ calculator_container_port | default(8000) }}"
     calculator_host_port: "{{ calculator_host_port | default(8000) }}"
     project_root: "{{ project_root | default(playbook_dir | dirname | dirname) }}"
+    build_from_source: "{{ build_from_source | default(true) }}"
   pre_tasks:
     - name: Check Docker availability
       ansible.builtin.command: docker version
@@ -31,15 +32,19 @@
     - name: Build image from local Dockerfile
       community.docker.docker_image:
         name: "{{ calculator_image }}"
+        source: build
         build:
           path: "{{ project_root }}"
-      when: dockerfile_stat.stat.exists
+        push: false
+      when:
+        - dockerfile_stat.stat.exists
+        - build_from_source | bool
 
     - name: Pull image from registry when Dockerfile missing
       community.docker.docker_image:
         name: "{{ calculator_image }}"
         source: pull
-      when: not dockerfile_stat.stat.exists
+      when: not dockerfile_stat.stat.exists or not (build_from_source | bool)
 
     - name: Run scientific calculator container
       community.docker.docker_container:
