@@ -3,7 +3,7 @@ pipeline {
 
   environment {
     VENV_DIR = ".venv"
-    DEFAULT_IMAGE = "spe-calculator"
+    DOCKER_IMAGE = "docker.io/swaroop3/spe-calculator"
     IMAGE_TAG = "${env.IMAGE_TAG ?: env.BUILD_NUMBER}"
   }
 
@@ -55,7 +55,6 @@ pipeline {
     stage('Build Image') {
       steps {
         script {
-          env.DOCKER_IMAGE = env.DOCKER_IMAGE ?: env.DEFAULT_IMAGE
           env.FULL_IMAGE = "${env.DOCKER_IMAGE}:${env.IMAGE_TAG}"
         }
         sh 'docker build -t ${FULL_IMAGE} .'
