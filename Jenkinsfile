@@ -97,7 +97,13 @@ pipeline {
       }
       steps {
         sh 'chmod +x scripts/deploy_with_ansible.sh'
-        sh '. ${VENV_DIR}/bin/activate && scripts/deploy_with_ansible.sh --extra-vars "calculator_image=${FULL_IMAGE} project_root=${env.WORKSPACE} build_from_source=false"'
+        script {
+          def extraVars = "calculator_image=${FULL_IMAGE} project_root=${env.WORKSPACE} build_from_source=false"
+          sh """
+            . ${VENV_DIR}/bin/activate
+            scripts/deploy_with_ansible.sh --extra-vars '${extraVars}'
+          """
+        }
       }
     }
   }
