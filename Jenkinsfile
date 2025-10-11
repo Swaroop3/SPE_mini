@@ -101,7 +101,7 @@ pipeline {
   post {
     always {
       script {
-        sh(script: 'docker logout', returnStatus: true)
+        sh(script: 'docker logout >/dev/null 2>&1', returnStatus: true)
       }
     }
   }
