@@ -6,6 +6,7 @@ pipeline {
     DOCKER_IMAGE = "docker.io/swaroop3/spe-calculator"
     IMAGE_TAG = "${env.IMAGE_TAG ?: env.BUILD_NUMBER}"
     DOCKERHUB_CREDENTIALS = "dockerhub"
+    DOCKER_HOST = "unix:///run/user/1000/docker.sock"
   }
 
   options {
