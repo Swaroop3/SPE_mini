@@ -63,8 +63,11 @@ pipeline {
         script {
           env.FULL_IMAGE = "${env.DOCKER_IMAGE}:${env.IMAGE_TAG}"
         }
-        sh 'docker build -t ${FULL_IMAGE} .'
-        sh 'docker tag ${FULL_IMAGE} ${DOCKER_IMAGE}:latest'
+        withEnv(["DOCKER_HOST=${env.DOCKER_HOST}"]) {
+          sh 'docker --version'
+          sh 'docker build -t ${FULL_IMAGE} .'
+          sh 'docker tag ${FULL_IMAGE} ${DOCKER_IMAGE}:latest'
+        }
       }
     }
 
