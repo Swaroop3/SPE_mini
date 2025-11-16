@@ -22,9 +22,12 @@ pipeline {
 
     stage('Setup Python') {
       steps {
-        sh 'python3 -m venv ${VENV_DIR}'
-        sh '. ${VENV_DIR}/bin/activate && pip install --upgrade pip'
-        sh '. ${VENV_DIR}/bin/activate && pip install -r requirements.txt'
+        sh '''
+          python3 -m venv ${VENV_DIR}
+          ${VENV_DIR}/bin/python -m ensurepip --upgrade
+          ${VENV_DIR}/bin/pip install --upgrade pip
+          ${VENV_DIR}/bin/pip install -r requirements.txt
+        '''
       }
     }
 
