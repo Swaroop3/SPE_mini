@@ -23,6 +23,7 @@ pipeline {
     stage('Setup Python') {
       steps {
         sh '''
+          rm -rf ${VENV_DIR}
           python3 -m venv ${VENV_DIR}
           ${VENV_DIR}/bin/python -m ensurepip --upgrade
           ${VENV_DIR}/bin/python -m pip install --upgrade pip
