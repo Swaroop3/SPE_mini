@@ -34,17 +34,23 @@ def read_root() -> dict[str, str]:
 
 
 @app.get("/sqrt", summary="Compute square root", response_model=OperationResponse)
-def square_root(value: float = Query(..., description="Non-negative operand")) -> OperationResponse:
+def square_root(
+    value: float = Query(..., description="Non-negative operand"),
+) -> OperationResponse:
     return _execute("sqrt", calculator.square_root, value)
 
 
 @app.get("/factorial", summary="Compute factorial", response_model=OperationResponse)
-def factorial(value: int = Query(..., ge=0, description="Non-negative integer operand")) -> OperationResponse:
+def factorial(
+    value: int = Query(..., ge=0, description="Non-negative integer operand"),
+) -> OperationResponse:
     return _execute("factorial", calculator.factorial, value)
 
 
 @app.get("/ln", summary="Compute natural logarithm", response_model=OperationResponse)
-def natural_log(value: float = Query(..., gt=0, description="Positive operand")) -> OperationResponse:
+def natural_log(
+    value: float = Query(..., gt=0, description="Positive operand"),
+) -> OperationResponse:
     return _execute("ln", calculator.natural_log, value)
 
 
