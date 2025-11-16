@@ -1,7 +1,7 @@
 version: "2"
-authtoken: ${NGROK_AUTHTOKEN}
+authtoken: 33viIGzqgkIrMSrFWz1E5RkwIAh_5n3M1iGLxT4GxDASoesDZ
 tunnels:
   calculator:
     proto: http
-    addr: 8000
+    addr: 8080
     inspect: false

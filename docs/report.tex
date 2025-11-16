@@ -1,0 +1,299 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{minted}
+
+\hypersetup{
+  colorlinks=true,
+  urlcolor=blue,
+  linkcolor=black,
+  pdfauthor={Swaroop3},
+  pdftitle={Scientific Calculator DevOps Mini Project}
+}
+
+\title{CS 816 Software Production Engineering Mini Project\\[4pt]
+Scientific Calculator with DevOps Pipeline}
+\author{Roll No.: \texttt{IMT2022XXX}\\GitHub: \href{https://github.com/Swaroop3}{Swaroop3}}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introduction}
+\begin{itemize}[leftmargin=*]
+  \item Developed a menu-driven scientific calculator providing square root, factorial, natural logarithm, and exponentiation.
+  \item Delivered both CLI (\texttt{spe-calculator}) and FastAPI HTTP endpoints (e.g. \texttt{/sqrt?value=9}).
+  \item Implemented a full DevOps toolchain: GitHub, pytest, packaging, Jenkins CI/CD, Docker, Docker Hub, Ansible deployment, and ngrok-based webhook automation.
+  \item Repository: \href{https://github.com/Swaroop3/SPE_mini}{github.com/Swaroop3/SPE\_mini}
+\end{itemize}
+
+\section{What and Why of DevOps}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Collaboration:} GitHub centralizes code, issues, and history.
+  \item \textbf{Quality:} Pytest and linting (Ruff) run on every commit to prevent regressions.
+  \item \textbf{Flow:} Jenkins orchestrates build $\rightarrow$ test $\rightarrow$ package $\rightarrow$ containerize $\rightarrow$ push $\rightarrow$ deploy.
+  \item \textbf{Repeatability:} Docker images and Ansible playbooks ensure consistent runtime across environments.
+  \item \textbf{Feedback:} Webhooks (via ngrok) trigger Jenkins instantly upon push, tightening feedback loops.
+\end{itemize}
+
+\section{Toolchain Overview}
+\begin{longtable}{p{0.22\linewidth}p{0.25\linewidth}p{0.45\linewidth}}
+\textbf{Stage} & \textbf{Tool(s)} & \textbf{Purpose / Notes} \\
+\hline
+Source Control & Git, GitHub & Repo: \texttt{Swaroop3/SPE\_mini}; branch \texttt{master}. Conventional commits used (e.g. \texttt{feat:}, \texttt{ci:}).\\
+Testing & Pytest, Ruff & \texttt{pytest} covers calculator functions and API; \texttt{ruff check} enforces style.\\
+Build & \texttt{python -m build} & Produces wheel (\texttt{dist/spe\_calculator-0.1.0-py3-none-any.whl}) and sdist.\\
+CI/CD & Jenkins 2.516.1 & Pipeline job \texttt{SPE-mini-pipeline}, triggered by GitHub webhooks via ngrok tunnel.\\
+Containerization & Docker, Dockerfile & Image runs FastAPI app via Uvicorn, exposes port 8000.\\
+Registry & Docker Hub & Repo \texttt{swaroop4/spe-calculator}; Jenkins pushes both build-number tag and \texttt{latest}.\\
+Config Mgmt / Deployment & Ansible (community.docker) & Playbook \texttt{configs/ansible/playbooks/deploy\_calculator.yml} pulls image and runs container.\\
+Webhook Relay & ngrok & Tunnel \texttt{https://unshy-otelia-unfermentative.ngrok-free.dev/github-webhook/} forwards GitHub events to Jenkins.\\
+\end{longtable}
+
+\section{Implementation Details}
+
+\subsection{Source Control Management}
+\begin{itemize}[leftmargin=*]
+  \item Repository: \href{https://github.com/Swaroop3/SPE_mini}{github.com/Swaroop3/SPE\_mini}; remote configured in Jenkins with credential \texttt{spe\_mini\_git}.
+  \item Branch strategy: single trunk (\texttt{master}) for this mini project; commits follow Conventional Commit format (e.g. \texttt{ci: enable ansible deployment via venv}).
+  \item Commands:
+\begin{minted}[fontsize=\small]{bash}
+git status
+git add .
+git commit -m "feat: bootstrap calculator project tooling"
+git push
+\end{minted}
+\item Evidence: screenshot of commit graph and Jenkins webhook-triggered build.
+\end{itemize}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{images/Github_webhook_delivery.png}
+  \caption{GitHub webhook delivery triggering Jenkins}
+\end{figure}
+
+\subsection{Automated Testing}
+\begin{itemize}[leftmargin=*]
+  \item Unit tests (\texttt{tests/test\_calculator.py}) validate deterministic math results and error handling.
+  \item API integration tests (\texttt{tests/test\_api.py}) exercise FastAPI endpoints via \texttt{TestClient}.
+  \item Jenkins stage:
+\begin{minted}[fontsize=\small]{groovy}
+stage('Unit Tests') {
+  sh 'mkdir -p reports'
+  sh '. ${VENV_DIR}/bin/activate && pytest --junitxml=reports/pytest.xml'
+  junit 'reports/pytest.xml'
+}
+\end{minted}
+  \item Local command: \texttt{pytest --maxfail=1 --disable-warnings -q}.
+\item Evidence: attach Jenkins test report screenshot (14/14 passed).
+\end{itemize}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{images/Jenkins_test_summary.png}
+  \caption{Jenkins unit test summary (14 tests passed)}
+\end{figure}
+
+\subsection{Build}
+\begin{itemize}[leftmargin=*]
+  \item Project metadata defined in \texttt{pyproject.toml} (setuptools backend).
+  \item Command (Jenkins \& local):
+\begin{minted}[fontsize=\small]{bash}
+python -m build
+\end{minted}
+  \item Artifacts archived by Jenkins (\texttt{dist/spe\_calculator-0.1.0.tar.gz}, \texttt{.whl}).
+\item Evidence: Jenkins artifact list snapshot.
+\end{itemize}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{images/Jenkins_pipeline_run.png}
+  \caption{Jenkins pipeline run showing all stages green}
+\end{figure}
+
+\subsection{Continuous Integration (Jenkins)}
+\begin{itemize}[leftmargin=*]
+  \item Jenkinsfile (repo root) drives Pipeline:
+\begin{minted}[fontsize=\small]{groovy}
+pipeline {
+  agent any
+  environment {
+    VENV_DIR = ".venv"
+    DOCKER_IMAGE = "docker.io/swaroop4/spe-calculator"
+    DOCKERHUB_CREDENTIALS = "dockerhub"
+    DOCKER_HOST = "unix:///run/user/1000/docker.sock"
+  }
+  stages { ... }
+}
+\end{minted}
+  \item Key stages: Checkout, Setup Python, Lint, Unit Tests, Build Package, Build Image, Push Image, Deploy via Ansible.
+  \item Webhook: GitHub \textrightarrow{} Jenkins via ngrok; Jenkins job configured with ``GitHub hook trigger for GITScm polling''.
+\item Evidence: screenshot of pipeline stage view (all stages green).
+\end{itemize}
+
+\clearpage
+\subsection{Containerization}
+\begin{itemize}[leftmargin=*]
+  \item Dockerfile:
+\begin{minted}[fontsize=\small]{docker}
+FROM python:3.13-slim
+WORKDIR /app
+RUN useradd --create-home --shell /bin/bash appuser
+COPY pyproject.toml README.md /app/
+COPY spe_calculator /app/spe_calculator
+RUN pip install --upgrade pip && pip install .
+USER appuser
+EXPOSE 8000
+ENTRYPOINT ["uvicorn", "spe_calculator.api:app", "--host", "0.0.0.0", "--port", "8000"]
+\end{minted}
+  \item Build command (Jenkins stage): \texttt{docker build -t docker.io/swaroop4/spe-calculator:\${BUILD\_NUMBER} .}
+  \item Local verification:
+\begin{minted}[fontsize=\small]{bash}
+docker run --rm -p 8000:8000 docker.io/swaroop4/spe-calculator:latest
+curl "http://localhost:8000/sqrt?value=9"
+\end{minted}
+\item Evidence: CLI output from curl and container logs.
+\end{itemize}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{images/Dockerhub_tags.png}
+  \caption{Docker Hub repository with build and latest tags}
+\end{figure}
+
+\subsection{Image Publishing (Docker Hub)}
+\begin{itemize}[leftmargin=*]
+  \item Jenkins Push stage uses stored credential \texttt{dockerhub} (username \texttt{swaroop4}).
+\begin{minted}[fontsize=\small]{groovy}
+withCredentials([usernamePassword(credentialsId: env.DOCKERHUB_CREDENTIALS, ...)]) {
+  sh 'docker push ${FULL_IMAGE}'
+  sh 'docker push ${DOCKER_IMAGE}:latest'
+}
+\end{minted}
+  \item Registry URL: \href{https://hub.docker.com/r/swaroop4/spe-calculator}{docker.io/swaroop4/spe-calculator}
+\item Evidence: Docker Hub screenshot showing tags \texttt{20}, \texttt{latest}.
+\end{itemize}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{images/Ansible_play_recap.png}
+  \caption{Ansible deployment play recap}
+\end{figure}
+
+\subsection{Configuration Management \& Deployment (Ansible)}
+\begin{itemize}[leftmargin=*]
+  \item Playbook: \texttt{configs/ansible/playbooks/deploy\_calculator.yml}
+  \item Jenkins runs:
+\begin{minted}[fontsize=\small]{groovy}
+scripts/deploy_with_ansible.sh --extra-vars \
+  '${extraVars}'
+\end{minted}
+  \item Helper script ensures \texttt{DOCKER\_HOST} for rootless docker, installs \texttt{community.docker}.
+  \item Critical tasks: ensure repo path exists, pull image (\texttt{build\_from\_source=false}), run container mapping host port 8000.
+  \item Manual command for reproducibility:
+\begin{minted}[fontsize=\small]{bash}
+scripts/deploy_with_ansible.sh \
+  --extra-vars "calculator_image=docker.io/swaroop4/spe-calculator:latest \
+                project_root=/home/swaroop/Desktop/SPE \
+                build_from_source=false"
+\end{minted}
+\item Evidence: Ansible output (PLAY RECAP with \texttt{changed=1}) and \texttt{docker ps} result.
+\end{itemize}
+
+\clearpage
+\subsection{Webhook Relay via ngrok}
+\begin{itemize}[leftmargin=*]
+  \item Config file: \texttt{configs/ngrok/ngrok.yml} with Jenkins tunnel on 8080.
+  \item Start command: \texttt{scripts/start\_ngrok.sh}.
+  \item GitHub Webhook configuration:
+    \begin{itemize}
+      \item Payload URL: \texttt{https://unshy-otelia-unfermentative.ngrok-free.dev/github-webhook/}
+      \item Content type: \texttt{application/json}
+      \item Event: Push
+    \end{itemize}
+\item Evidence: GitHub webhook delivery history and Jenkins build triggered by push.
+\end{itemize}
+
+\section{Results and Validation}
+\begin{itemize}[leftmargin=*]
+  \item Jenkins build \#20 success: lint, tests (14 pass), package, Docker push, Ansible deploy.
+  \item Deployed container responds:
+\begin{minted}[fontsize=\small]{bash}
+$ curl "http://localhost:8000/sqrt?value=25"
+{"operation":"sqrt","result":5.0}
+$ curl "http://localhost:8000/power?base=2&exponent=8"
+{"operation":"power","result":256.0}
+\end{minted}
+  \item CLI transcript:
+\begin{minted}[fontsize=\small]{bash}
+$ spe-calculator
+Scientific Calculator
+1. Square Root (√x)
+...
+Select an option (1-5): 2
+Enter a non-negative integer: 5
+5! = 120
+\end{minted}
+\item Docker Hub tag list confirms \texttt{swaroop4/spe-calculator:20} and \texttt{:latest}.
+\item Ansible play recap:
+\begin{minted}[fontsize=\small]{text}
+localhost : ok=6  changed=1  failed=0
+\end{minted}
+\end{itemize}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{images/Running_container_check.png}
+  \caption{Running container and API verification}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{images/CLI_demonstration.png}
+  \caption{CLI demonstration of calculator operations}
+\end{figure}
+
+\section{Challenges and Learnings}
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Rootless Docker Access:} Jenkins needed \texttt{DOCKER\_HOST=unix:///run/user/1000/docker.sock} and local \texttt{DOCKER\_CONFIG} to authenticate cleanly.
+  \item \textbf{Ansible Defaults:} Original variable defaults referenced themselves, causing recursive loops; resolved with derived variables and explicit \texttt{build\_from\_source} flag.
+  \item \textbf{Credential Hygiene:} Docker Hub login inside Jenkins required isolated config instead of default credential helper.
+  \item \textbf{Webhook Exposure:} ngrok provided easy tunneling but demands updates when the URL changes; longer term solution could be a static domain or hosted Jenkins.
+\end{itemize}
+
+\section{Future Enhancements}
+\begin{itemize}[leftmargin=*]
+  \item Add integration tests covering API error paths (e.g., invalid JSON).
+  \item Publish code coverage reports to Jenkins/Allure.
+  \item Add health checks and monitoring dashboards (Prometheus + Grafana).
+  \item Parameterize Ansible deploy to target remote hosts via SSH inventory.
+  \item Secure Jenkins ngrok tunnel with Webhook secret validation.
+\end{itemize}
+
+\section{References}
+\begin{itemize}[leftmargin=*]
+  \item FastAPI docs: \url{https://fastapi.tiangolo.com/}
+  \item Pytest docs: \url{https://docs.pytest.org/}
+  \item Jenkins Declarative Pipeline: \url{https://www.jenkins.io/doc/book/pipeline/syntax/}
+  \item Docker documentation: \url{https://docs.docker.com/}
+  \item Ansible community.docker collection: \url{https://docs.ansible.com/ansible/latest/collections/community/docker/}
+  \item ngrok docs: \url{https://ngrok.com/docs}
+\end{itemize}
+
+\section*{Appendix}
+\begin{itemize}[leftmargin=*]
+  \item GitHub repository: \url{https://github.com/Swaroop3/SPE_mini}
+  \item Jenkins job (local): \texttt{http://localhost:8080/job/SPE-mini-pipeline}
+  \item Docker Hub: \url{https://hub.docker.com/r/swaroop4/spe-calculator}
+  \item Jenkinsfile: \texttt{Jenkinsfile} at repository root.
+  \item Ansible playbook: \texttt{configs/ansible/playbooks/deploy\_calculator.yml}
+  \item Report template source: \texttt{docs/report-template.md}
+\end{itemize}
+
+\end{document}
