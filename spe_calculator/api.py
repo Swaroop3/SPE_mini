@@ -1,4 +1,4 @@
-"""FastAPI application exposing calculator operations over HTTP."""
+"""FastAPI application exposing calculator operations over HTTP."""  # test push
 
 from __future__ import annotations
 
