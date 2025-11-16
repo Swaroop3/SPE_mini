@@ -3,5 +3,5 @@ authtoken: 33viIGzqgkIrMSrFWz1E5RkwIAh_5n3M1iGLxT4GxDASoesDZ
 tunnels:
   calculator:
     proto: http
-    addr: 8080
+    addr: 8090
     inspect: false
